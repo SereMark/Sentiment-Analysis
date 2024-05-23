@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 from torch.nn import functional as F
 from tqdm import tqdm
+import re
 
 # Configuration
 class Config:
@@ -15,6 +16,7 @@ class Config:
     LEARNING_RATE = 2e-5
     MAX_LEN = 256  # Maximum length of tokens
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+    MODEL_SAVE_PATH = 'bert_sentiment_model.pth'
 
 # Custom dataset class
 class MovieReviewDataset(Dataset):
@@ -94,10 +96,40 @@ def train_epoch(model, data_loader, loss_fn, optimizer, device, n_examples):
 
     return correct_predictions.double() / n_examples, np.mean(losses)
 
-# Main function
+def eval_model(model, data_loader, loss_fn, device, n_examples):
+    model = model.eval()
+    model.to(device)
+    losses = []
+    correct_predictions = 0
+
+    with torch.no_grad():
+        for d in data_loader:
+            input_ids = d["input_ids"].to(device)
+            attention_mask = d["attention_mask"].to(device)
+            targets = d["targets"].to(device)
+
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=targets
+            )
+
+            loss = outputs.loss
+            logits = outputs.logits
+            _, preds = torch.max(logits, dim=1)
+            correct_predictions += torch.sum(preds == targets)
+            losses.append(loss.item())
+
+    return correct_predictions.double() / n_examples, np.mean(losses)
+
+def remove_html_tags(text):
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
 def main():
     # Load data
     df = pd.read_csv("Data/IMDB Dataset.csv")
+    df['review'] = df['review'].apply(remove_html_tags)
     df['sentiment'] = df['sentiment'].apply(lambda x: 1 if x == 'positive' else 0)
     df_train, df_test = train_test_split(df, test_size=0.1, random_state=42)
 
@@ -123,8 +155,20 @@ def main():
             Config.DEVICE,
             len(df_train)
         )
-
         print(f'Train loss {train_loss} accuracy {train_acc}')
+
+    # Save model
+    torch.save(model.state_dict(), Config.MODEL_SAVE_PATH)
+
+    # Evaluate model
+    test_acc, test_loss = eval_model(
+        model,
+        test_data_loader,
+        F.cross_entropy,
+        Config.DEVICE,
+        len(df_test)
+    )
+    print(f'Test loss {test_loss} accuracy {test_acc}')
 
 if __name__ == "__main__":
     main()
