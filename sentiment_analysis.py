@@ -17,6 +17,7 @@ BATCH_SIZE = 16
 LEARNING_RATE = 2e-5
 MAX_LEN = 256  # Maximum length of tokens
 MODEL_SAVE_PATH = 'Models/bert_sentiment_model.pth'
+DATA_PATH = 'Data/IMDB Dataset.csv'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MovieReviewDataset(Dataset):
@@ -112,7 +113,7 @@ def main():
     print(f"Device: {DEVICE}")
 
     # Load and preprocess data
-    df = pd.read_csv("Data/IMDB Dataset.csv")
+    df = pd.read_csv(DATA_PATH)
     df['review'] = df['review'].apply(remove_html_tags)
     df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
     df_train, df_test = train_test_split(df, test_size=0.1, random_state=42)
