@@ -112,48 +112,57 @@ class SentimentClassifier(nn.Module):
 def train(model, loader, optimizer, criterion, device, model_type='BERT', epochs=1):
     model.train()
     all_epoch_losses = []
+    print("Starting training...")
     for epoch in range(epochs):
         epoch_loss = 0
-        for batch in tqdm(loader):
+        print(f"Epoch {epoch+1}/{epochs} started...")
+        for batch in tqdm(loader, desc=f"Training Epoch {epoch+1}"):
             optimizer.zero_grad()
             if model_type == 'BERT':
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['labels'].to(device)
                 outputs = model(input_ids, attention_mask)
+                print("Processed BERT model inputs.")
             else:
                 embeddings = batch['embedding'].to(device)
                 labels = batch['label'].to(device)
                 outputs = model(embeddings)
+                print("Processed non-BERT model inputs.")
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
         avg_loss = epoch_loss / len(loader)
         all_epoch_losses.append(avg_loss)
-        print(f"Epoch {epoch+1} Training Loss: {avg_loss}")
+        print(f"Epoch {epoch+1} completed. Training Loss: {avg_loss}")
+    print("Training completed.")
     return all_epoch_losses
 
 def evaluate(model, loader, device, model_type='BERT'):
     model.eval()
     predictions, true_labels, probabilities = [], [], []
+    print("Starting evaluation...")
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader, desc="Evaluating"):
             if model_type == 'BERT':
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['labels'].to(device)
                 outputs = model(input_ids, attention_mask)
                 outputs = outputs.softmax(dim=-1)
+                print("Processed BERT model evaluation.")
             else:
                 embeddings = batch['embedding'].to(device)
                 labels = batch['label'].to(device)
                 outputs = model(embeddings)
                 outputs = outputs.softmax(dim=-1)
+                print("Processed non-BERT model evaluation.")
             _, preds = torch.max(outputs, dim=1)
             predictions.extend(preds.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
             probabilities.extend(outputs.cpu().numpy()[:, 1])
+    print("Evaluation completed.")
     print(classification_report(true_labels, predictions))
     return predictions, true_labels, probabilities
 
