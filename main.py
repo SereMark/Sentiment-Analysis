@@ -189,75 +189,88 @@ def evaluate(model, loader, device, model_type='BERT'):
 bert_preds, bert_labels, bert_probs = evaluate(bert_classifier, val_loader, device, 'BERT')
 glove_preds, glove_labels, glove_probs = evaluate(glove_classifier, glove_val_loader, device, 'GloVe')
 
-# Method to plot training losses
-def plot_training_loss(losses, model_name):
+# Training loss comparison function
+def plot_combined_training_loss(losses1, losses2, name1, name2):
     plt.figure()
-    plt.plot(losses, label=f'Training Loss for {model_name}')
+    plt.plot(losses1, label=f'Training Loss for {name1}')
+    plt.plot(losses2, label=f'Training Loss for {name2}')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title(f'Training Loss Over Epochs for {model_name}')
+    plt.title('Training Loss Over Epochs')
     plt.legend()
     plt.show()
 
-# Plot Training Losses
-plot_training_loss(bert_losses, 'BERT')
-plot_training_loss(glove_losses, 'GloVe')
+# Plot training loss comparison
+plot_combined_training_loss(bert_losses, glove_losses, 'BERT', 'GloVe')
 
-# Method to plot histograms of predicted probabilities
-def plot_probability_histogram(probs, model_name):
+# Histogram of predicted probabilities comparison function
+def plot_combined_probability_histogram(probs1, probs2, name1, name2):
     plt.figure()
-    plt.hist(probs, bins=10, alpha=0.75, label=f'Predicted Probabilities {model_name}')
-    plt.title(f'Histogram of Predicted Probabilities for {model_name}')
+    plt.hist(probs1, bins=10, alpha=0.75, label=f'Predicted Probabilities {name1}')
+    plt.hist(probs2, bins=10, alpha=0.75, label=f'Predicted Probabilities {name2}')
+    plt.title('Histogram of Predicted Probabilities')
     plt.xlabel('Probability of Positive Sentiment')
     plt.ylabel('Frequency')
     plt.legend()
     plt.show()
 
-# Plot Histograms of Predicted Probabilities
-plot_probability_histogram(bert_probs, 'BERT')
-plot_probability_histogram(glove_probs, 'GloVe')
+# Plot histogram of predicted probabilities
+plot_combined_probability_histogram(bert_probs, glove_probs, 'BERT', 'GloVe')
 
-# Method to plot ROC curves
-def plot_roc_curve(true_labels, model_probs, model_name):
-    fpr, tpr, _ = roc_curve(true_labels, model_probs)
-    roc_auc = auc(fpr, tpr)
+# ROC curve comparison function
+def plot_combined_roc_curve(true_labels1, probs1, true_labels2, probs2, name1, name2):
+    fpr1, tpr1, _ = roc_curve(true_labels1, probs1)
+    roc_auc1 = auc(fpr1, tpr1)
+    fpr2, tpr2, _ = roc_curve(true_labels2, probs2)
+    roc_auc2 = auc(fpr2, tpr2)
+    
     plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.plot(fpr1, tpr1, label=f'{name1} ROC curve (area = {roc_auc1:.2f})')
+    plt.plot(fpr2, tpr2, label=f'{name2} ROC curve (area = {roc_auc2:.2f})')
+    plt.plot([0, 1], [0, 1], linestyle='--', color='navy')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f'ROC Curve for {model_name}')
+    plt.title('ROC Curves Comparison')
     plt.legend(loc="lower right")
     plt.show()
 
-# Plot ROC Curves
-plot_roc_curve(bert_labels, bert_probs, 'BERT')
-plot_roc_curve(glove_labels, glove_probs, 'GloVe')
+# Plot ROC curve comparison
+plot_combined_roc_curve(bert_labels, bert_probs, glove_labels, glove_probs, 'BERT', 'GloVe')
 
-# Method to plot confusion matrices
-def plot_confusion_matrix(true_labels, predictions, model_name):
-    cf_matrix = confusion_matrix(true_labels, predictions)
-    sns.heatmap(cf_matrix, annot=True, fmt='g')
-    plt.title(f'Confusion Matrix for {model_name}')
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
+# Confusion matrix comparison function
+def plot_combined_confusion_matrix(true_labels1, predictions1, true_labels2, predictions2, name1, name2):
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+    cf_matrix1 = confusion_matrix(true_labels1, predictions1)
+    sns.heatmap(cf_matrix1, annot=True, fmt='g', ax=ax[0])
+    ax[0].set_title(f'Confusion Matrix for {name1}')
+    ax[0].set_xlabel('Predicted')
+    ax[0].set_ylabel('Actual')
+    
+    cf_matrix2 = confusion_matrix(true_labels2, predictions2)
+    sns.heatmap(cf_matrix2, annot=True, fmt='g', ax=ax[1])
+    ax[1].set_title(f'Confusion Matrix for {name2}')
+    ax[1].set_xlabel('Predicted')
+    ax[1].set_ylabel('Actual')
+    
     plt.show()
 
-# Plot Confusion Matrices
-plot_confusion_matrix(bert_labels, bert_preds, 'BERT')
-plot_confusion_matrix(glove_labels, glove_preds, 'GloVe')
+# Plot confusion matrix comparison
+plot_combined_confusion_matrix(bert_labels, bert_preds, glove_labels, glove_preds, 'BERT', 'GloVe')
 
-# Method to plot Precision-Recall curves
-def plot_precision_recall_curve(true_labels, model_probs, model_name):
-    precision, recall, _ = precision_recall_curve(true_labels, model_probs)
+# Precision-Recall curve comparison function
+def plot_combined_precision_recall_curve(true_labels1, probs1, true_labels2, probs2, name1, name2):
+    precision1, recall1, _ = precision_recall_curve(true_labels1, probs1)
+    precision2, recall2, _ = precision_recall_curve(true_labels2, probs2)
+    
     plt.figure()
-    plt.plot(recall, precision, marker='.', label=f'Precision-Recall curve')
+    plt.plot(recall1, precision1, label=f'{name1} Precision-Recall curve')
+    plt.plot(recall2, precision2, label=f'{name2} Precision-Recall curve')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title(f'Precision-Recall Curve for {model_name}')
+    plt.title('Precision-Recall Curves Comparison')
     plt.legend()
     plt.show()
 
-# Plot Precision-Recall Curves
-plot_precision_recall_curve(bert_labels, bert_probs, 'BERT')
-plot_precision_recall_curve(glove_labels, glove_probs, 'GloVe')
+# Plot precision-recall curve comparison
+plot_combined_precision_recall_curve(bert_labels, bert_probs, glove_labels, glove_probs, 'BERT', 'GloVe')
