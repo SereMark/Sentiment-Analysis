@@ -108,7 +108,18 @@ class SentimentClassifier(nn.Module):
             x = self.dropout(x)
             return self.fc2(x)
 
-# Training and evaluation functions
+# Instantiate and setup DataLoaders for both models, Instantiate models
+train_loader = DataLoader(MovieReviewDataset(train_texts, train_labels), batch_size=16, shuffle=True)
+val_loader = DataLoader(MovieReviewDataset(val_texts, val_labels), batch_size=16, shuffle=False)
+glove_train_loader = DataLoader(GloVeDataset(train_embeddings, train_labels), batch_size=16, shuffle=True)
+glove_val_loader = DataLoader(GloVeDataset(val_embeddings, val_labels), batch_size=16, shuffle=False)
+bert_model = SentimentClassifier('BERT').to(device)
+glove_model = SentimentClassifier('GloVe').to(device)
+optimizer_bert = torch.optim.Adam(bert_model.parameters(), lr=2e-5)
+optimizer_glove = torch.optim.Adam(glove_model.parameters(), lr=5e-4)
+criterion = nn.CrossEntropyLoss()
+
+# Train both models
 def train(model, loader, optimizer, criterion, device, model_type='BERT', epochs=1):
     model.train()
     all_epoch_losses = []
@@ -139,6 +150,10 @@ def train(model, loader, optimizer, criterion, device, model_type='BERT', epochs
     print("Training completed.")
     return all_epoch_losses
 
+bert_losses = train(bert_model, train_loader, optimizer_bert, criterion, device, 'BERT', epochs=5)
+glove_losses = train(glove_model, glove_train_loader, optimizer_glove, criterion, device, 'GloVe', epochs=5)
+
+# Evaluate both models
 def evaluate(model, loader, device, model_type='BERT'):
     model.eval()
     predictions, true_labels, probabilities = [], [], []
@@ -166,27 +181,10 @@ def evaluate(model, loader, device, model_type='BERT'):
     print(classification_report(true_labels, predictions))
     return predictions, true_labels, probabilities
 
-# Instantiate and setup DataLoaders for both models
-train_loader = DataLoader(MovieReviewDataset(train_texts, train_labels), batch_size=16, shuffle=True)
-val_loader = DataLoader(MovieReviewDataset(val_texts, val_labels), batch_size=16, shuffle=False)
-glove_train_loader = DataLoader(GloVeDataset(train_embeddings, train_labels), batch_size=16, shuffle=True)
-glove_val_loader = DataLoader(GloVeDataset(val_embeddings, val_labels), batch_size=16, shuffle=False)
-
-# Instantiate models
-bert_model = SentimentClassifier('BERT').to(device)
-glove_model = SentimentClassifier('GloVe').to(device)
-optimizer_bert = torch.optim.Adam(bert_model.parameters(), lr=2e-5)
-optimizer_glove = torch.optim.Adam(glove_model.parameters(), lr=5e-4)
-criterion = nn.CrossEntropyLoss()
-
-# Train both models
-bert_losses = train(bert_model, train_loader, optimizer_bert, criterion, device, 'BERT', epochs=3)
-glove_losses = train(glove_model, glove_train_loader, optimizer_glove, criterion, device, 'GloVe', epochs=10)
-
-# Evaluate both models
 bert_preds, bert_labels, bert_probs = evaluate(bert_model, val_loader, device, 'BERT')
 glove_preds, glove_labels, glove_probs = evaluate(glove_model, glove_val_loader, device, 'GloVe')
 
+# Plot Training Losses
 def plot_training_loss(losses, model_name):
     plt.figure()
     plt.plot(losses, label=f'Training Loss for {model_name}')
@@ -196,6 +194,10 @@ def plot_training_loss(losses, model_name):
     plt.legend()
     plt.show()
 
+plot_training_loss(bert_losses, 'BERT')
+plot_training_loss(glove_losses, 'GloVe')
+
+# Plot Histograms of Predicted Probabilities
 def plot_probability_histogram(probs, model_name):
     plt.figure()
     plt.hist(probs, bins=10, alpha=0.75, label=f'Predicted Probabilities {model_name}')
@@ -205,6 +207,10 @@ def plot_probability_histogram(probs, model_name):
     plt.legend()
     plt.show()
 
+plot_probability_histogram(bert_probs, 'BERT')
+plot_probability_histogram(glove_probs, 'GloVe')
+
+# Plot ROC Curves
 def plot_roc_curve(true_labels, model_probs, model_name):
     fpr, tpr, _ = roc_curve(true_labels, model_probs)
     roc_auc = auc(fpr, tpr)
@@ -217,6 +223,10 @@ def plot_roc_curve(true_labels, model_probs, model_name):
     plt.legend(loc="lower right")
     plt.show()
 
+plot_roc_curve(bert_labels, bert_probs, 'BERT')
+plot_roc_curve(glove_labels, glove_probs, 'GloVe')
+
+# Plot Confusion Matrices
 def plot_confusion_matrix(true_labels, predictions, model_name):
     cf_matrix = confusion_matrix(true_labels, predictions)
     sns.heatmap(cf_matrix, annot=True, fmt='g')
@@ -225,6 +235,10 @@ def plot_confusion_matrix(true_labels, predictions, model_name):
     plt.ylabel('Actual')
     plt.show()
 
+plot_confusion_matrix(bert_labels, bert_preds, 'BERT')
+plot_confusion_matrix(glove_labels, glove_preds, 'GloVe')
+
+# Plot Precision-Recall Curves
 def plot_precision_recall_curve(true_labels, model_probs, model_name):
     precision, recall, _ = precision_recall_curve(true_labels, model_probs)
     plt.figure()
@@ -235,22 +249,5 @@ def plot_precision_recall_curve(true_labels, model_probs, model_name):
     plt.legend()
     plt.show()
 
-# Assuming you capture losses per epoch in a list:
-plot_training_loss(bert_losses, 'BERT')
-plot_training_loss(glove_losses, 'GloVe')
-
-# Plot Histograms of Predicted Probabilities
-plot_probability_histogram(bert_probs, 'BERT')
-plot_probability_histogram(glove_probs, 'GloVe')
-
-# Plot ROC Curves
-plot_roc_curve(bert_labels, bert_probs, 'BERT')
-plot_roc_curve(glove_labels, glove_probs, 'GloVe')
-
-# Plot Confusion Matrices
-plot_confusion_matrix(bert_labels, bert_preds, 'BERT')
-plot_confusion_matrix(glove_labels, glove_preds, 'GloVe')
-
-# Plot Precision-Recall Curves
 plot_precision_recall_curve(bert_labels, bert_probs, 'BERT')
 plot_precision_recall_curve(glove_labels, glove_probs, 'GloVe')
