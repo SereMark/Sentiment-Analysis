@@ -43,15 +43,16 @@ val_embeddings = [get_glove_embedding(text) for text in val_texts]
 # Dataset class for GloVe embeddings
 class GloVeDataset(Dataset):
     def __init__(self, embeddings, labels):
-        self.embeddings, self.labels = embeddings, labels
+        self.embeddings = torch.stack(embeddings)
+        self.labels = torch.tensor(labels, dtype=torch.long)
 
     def __len__(self):
         return len(self.embeddings)
 
     def __getitem__(self, idx):
         return {
-            'embedding': torch.tensor(self.embeddings[idx], dtype=torch.float),
-            'label': torch.tensor(self.labels[idx], dtype=torch.long)
+            'embedding': self.embeddings[idx].clone().detach(),
+            'label': self.labels[idx]
         }
 
 # BERT tokenizer and model setup
@@ -59,7 +60,8 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 class MovieReviewDataset(Dataset):
     def __init__(self, texts, labels):
-        self.texts, self.labels = texts, labels
+        self.texts = texts
+        self.labels = torch.tensor(labels, dtype=torch.long)
 
     def __len__(self):
         return len(self.texts)
@@ -73,9 +75,9 @@ class MovieReviewDataset(Dataset):
             return_tensors="pt"
         )
         return {
-            'input_ids': tokenized_data['input_ids'].squeeze(),
-            'attention_mask': tokenized_data['attention_mask'].squeeze(),
-            'labels': torch.tensor(self.labels[idx], dtype=torch.long)
+            'input_ids': tokenized_data['input_ids'].squeeze().clone().detach(),
+            'attention_mask': tokenized_data['attention_mask'].squeeze().clone().detach(),
+            'labels': self.labels[idx]
         }
 
 # Model for sentiment classification
@@ -156,8 +158,10 @@ optimizer_bert = torch.optim.Adam(bert_model.parameters(), lr=2e-5)
 optimizer_glove = torch.optim.Adam(glove_model.parameters(), lr=5e-4)
 criterion = nn.CrossEntropyLoss()
 
-# Train and evaluate both models
+# Train both models
 train(bert_model, train_loader, optimizer_bert, criterion, device, 'BERT')
-evaluate(bert_model, val_loader, device, 'BERT')
 train(glove_model, glove_train_loader, optimizer_glove, criterion, device, 'GloVe')
+
+# Evaluate both models
+evaluate(bert_model, val_loader, device, 'BERT')
 evaluate(glove_model, glove_val_loader, device, 'GloVe')
