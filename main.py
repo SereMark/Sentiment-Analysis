@@ -25,7 +25,7 @@ imdb_data['sentiment'] = imdb_data['sentiment'].map({'positive': 1, 'negative': 
 
 # Split the dataset into training and validation sets
 train_reviews, val_reviews, train_sentiments, val_sentiments = train_test_split(
-    imdb_data['review'], imdb_data['sentiment'], test_size=0.2, random_state=42
+    imdb_data['review'].tolist(), imdb_data['sentiment'].tolist(), test_size=0.2, random_state=42
 )
 
 # Initialize GloVe embeddings
