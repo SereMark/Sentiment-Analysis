@@ -108,11 +108,13 @@ class SentimentClassifier(nn.Module):
             x = self.dropout(x)
             return self.fc2(x)
 
-# Instantiate and setup DataLoaders for both models, Instantiate models
+# Instantiate and setup DataLoaders for both models
 train_loader = DataLoader(MovieReviewDataset(train_texts, train_labels), batch_size=16, shuffle=True)
 val_loader = DataLoader(MovieReviewDataset(val_texts, val_labels), batch_size=16, shuffle=False)
 glove_train_loader = DataLoader(GloVeDataset(train_embeddings, train_labels), batch_size=16, shuffle=True)
 glove_val_loader = DataLoader(GloVeDataset(val_embeddings, val_labels), batch_size=16, shuffle=False)
+
+# Instantiate models, optimizers, and criterion
 bert_model = SentimentClassifier('BERT').to(device)
 glove_model = SentimentClassifier('GloVe').to(device)
 optimizer_bert = torch.optim.Adam(bert_model.parameters(), lr=2e-5)
@@ -134,12 +136,10 @@ def train(model, loader, optimizer, criterion, device, model_type='BERT', epochs
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['labels'].to(device)
                 outputs = model(input_ids, attention_mask)
-                print("Processed BERT model inputs.")
             else:
                 embeddings = batch['embedding'].to(device)
                 labels = batch['label'].to(device)
                 outputs = model(embeddings)
-                print("Processed non-BERT model inputs.")
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -166,13 +166,11 @@ def evaluate(model, loader, device, model_type='BERT'):
                 labels = batch['labels'].to(device)
                 outputs = model(input_ids, attention_mask)
                 outputs = outputs.softmax(dim=-1)
-                print("Processed BERT model evaluation.")
             else:
                 embeddings = batch['embedding'].to(device)
                 labels = batch['label'].to(device)
                 outputs = model(embeddings)
                 outputs = outputs.softmax(dim=-1)
-                print("Processed non-BERT model evaluation.")
             _, preds = torch.max(outputs, dim=1)
             predictions.extend(preds.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
