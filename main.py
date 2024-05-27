@@ -28,13 +28,18 @@ train_reviews, val_reviews, train_sentiments, val_sentiments = train_test_split(
     imdb_data['review'].tolist(), imdb_data['sentiment'].tolist(), test_size=0.2, random_state=42
 )
 
-# Plot histogram of review lengths
-review_lengths = [len(review.split()) for review in imdb_data['review'].tolist()]
+# Separate reviews based on sentiment
+positive_reviews = [len(review.split()) for review, sentiment in zip(imdb_data['review'].tolist(), imdb_data['sentiment'].tolist()) if sentiment == 1]
+negative_reviews = [len(review.split()) for review, sentiment in zip(imdb_data['review'].tolist(), imdb_data['sentiment'].tolist()) if sentiment == 0]
+
+# Plot histogram of review lengths for each sentiment
 plt.figure()
-plt.hist(review_lengths, bins=30, color='blue', alpha=0.7)
+plt.hist(positive_reviews, bins=30, color='blue', alpha=0.7, label='Positive')
+plt.hist(negative_reviews, bins=30, color='red', alpha=0.7, label='Negative')
 plt.title('Histogram of Review Lengths')
 plt.xlabel('Number of Words')
 plt.ylabel('Frequency')
+plt.legend(loc='upper right')
 plt.show()
 
 # Initialize GloVe embeddings
@@ -153,16 +158,6 @@ def train(model, loader, optimizer, loss_function, device, model_type='BERT', ep
 # Train both models
 bert_losses = train(bert_classifier, train_loader, optimizer_bert, loss_function, device, 'BERT', epochs=2)
 glove_losses = train(glove_classifier, glove_train_loader, optimizer_glove, loss_function, device, 'GloVe', epochs=2)
-
-# Compare training losses
-plt.figure()
-plt.plot(bert_losses, label='BERT Losses', color='red')
-plt.plot(glove_losses, label='GloVe Losses', color='blue')
-plt.title('Comparison of Training Losses')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.legend()
-plt.show()
 
 # Evaluation function
 def evaluate(model, loader, device, model_type='BERT'):
