@@ -11,8 +11,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import ipywidgets as widgets
 from IPython.display import display, clear_output
-import threading
-import time
 from tqdm import tqdm
 import warnings
 
