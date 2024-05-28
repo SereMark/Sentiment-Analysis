@@ -157,7 +157,7 @@ def train(model, loader, optimizer, loss_function, device, model_type='BERT', ep
 
 # Train both models
 bert_losses = train(bert_classifier, train_loader, optimizer_bert, loss_function, device, 'BERT', epochs=5)
-glove_losses = train(glove_classifier, glove_train_loader, optimizer_glove, loss_function, device, 'GloVe', epochs=10)
+glove_losses = train(glove_classifier, glove_train_loader, optimizer_glove, loss_function, device, 'GloVe', epochs=5)
 
 # Evaluation function
 def evaluate(model, loader, device, model_type='BERT'):
