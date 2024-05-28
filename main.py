@@ -9,6 +9,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_curve, auc, precision_recall_curve, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import ipywidgets as widgets
+from IPython.display import display, clear_output
+import threading
+import time
 from tqdm import tqdm
 import warnings
 
@@ -274,3 +278,42 @@ def plot_combined_precision_recall_curve(true_labels1, probs1, true_labels2, pro
 
 # Plot precision-recall curve comparison
 plot_combined_precision_recall_curve(bert_labels, bert_probs, glove_labels, glove_probs, 'BERT', 'GloVe')
+
+# Sentiment prediction function
+def predict_sentiment(text, model, tokenizer, device):
+    if not text.strip():  # Check if the text is not just empty or spaces
+        return "No input", 0
+    model.eval()  # Ensure the model is in evaluation mode
+    text = text.lower()  # Lowercase the text
+    try:
+        if tokenizer:
+            tokenized = tokenizer(text, padding='max_length', truncation=True, max_length=256, return_tensors="pt").to(device)
+            with torch.no_grad():
+                output = model(tokenized['input_ids'], tokenized['attention_mask']).softmax(dim=-1)
+        else:
+            embeddings = fetch_glove_embeddings(text).unsqueeze(0).to(device)
+            with torch.no_grad():
+                output = model(embeddings).softmax(dim=-1)
+        pred = torch.argmax(output, dim=1).item()
+        certainty = output[0, pred].item()
+        sentiment = 'Positive' if pred == 1 else 'Negative'
+        return sentiment, certainty * 100
+    except Exception as e:
+        return f"Error: {str(e)}", 0
+
+# Sentiment prediction widget for google colab
+def update_output(change):
+    text_input = change.new
+    if text_input:  # Update only if the text is not empty
+        bert_sentiment, bert_certainty = predict_sentiment(text_input, bert_classifier, bert_tokenizer, device)
+        glove_sentiment, glove_certainty = predict_sentiment(text_input, glove_classifier, None, device)
+        with output:
+            clear_output(wait=True)
+            print(f"BERT: Sentiment - {bert_sentiment}, Certainty - {bert_certainty:.2f}%")
+            print(f"GloVe: Sentiment - {glove_sentiment}, Certainty - {glove_certainty:.2f}%")
+
+# Widget setup
+text_input = widgets.Text(placeholder='Type something here...', description='Input:', disabled=False)
+output = widgets.Output()
+text_input.observe(update_output, names='value')
+display(text_input, output)
