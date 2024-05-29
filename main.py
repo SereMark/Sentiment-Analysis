@@ -349,6 +349,7 @@ def update_output(change):
 
 # Widget setup: This section sets up the interactive widget for the sentiment prediction. It includes a text input field and an output area
 # where predictions are displayed.
+# Note: This widget is designed for Google Colab and may need adjustments for other environments.
 text_input = widgets.Text(placeholder='Type something here...', description='Input:', disabled=False)  # Create a text input widget.
 output = widgets.Output()  # Create an output widget to display predictions.
 text_input.observe(update_output, names='value')  # Set up an observer to call update_output when the text changes.
