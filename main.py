@@ -1,6 +1,6 @@
 # Sentiment Analysis of IMDb Reviews
 
-# This project employs sentiment analysis to classify IMDb movie reviews using static embeddings (Word2Vec) and contextual embeddings (BERT). 
+# This project employs sentiment analysis to classify IMDb movie reviews using static embeddings (GloVe) and contextual embeddings (BERT). 
 # This comparison aims to evaluate their effectiveness in sentiment classification, providing insights that could guide model selection 
 # and application strategies in natural language processing tasks.
 
